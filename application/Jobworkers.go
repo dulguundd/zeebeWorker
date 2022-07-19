@@ -106,7 +106,7 @@ func AmsChangeCostumerInformationHandler(client worker.JobClient, job entities.J
 	log.Println("Successfully completed job")
 }
 
-func AmsCreateNewCostumerHandler(client worker.JobClient, job entities.Job) {
+func AmsCreateNewCustomerHandler(client worker.JobClient, job entities.Job) {
 	//get Task variable and headers
 	jobKey := job.GetKey()
 	variables, err := job.GetVariablesAsMap()
@@ -175,16 +175,13 @@ func HANDLER_NAME(client worker.JobClient, job entities.Job) {
 		return
 	}
 
-	log.Println("Complete job", jobKey, "of type", job.Type)
-	log.Println("Processing order:", variables["orderId"])
-	log.Println("Collect money using payment method:", headers["method"])
-
 	ctx := context.Background()
 	_, err = request.Send(ctx)
 	if err != nil {
 		panic(err)
 	}
 
+	//LOG HERE
 	log.Println("Successfully completed job")
 }
 */

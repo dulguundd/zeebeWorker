@@ -20,7 +20,7 @@ type ZeebeConfig struct {
 func getEnvironment() *Environment {
 	var environment Environment
 	environment = Environment{
-		zeebeConfig: struct{ zeebeAddress string }{zeebeAddress: "172.30.52.239:26500"},
+		zeebeConfig: struct{ zeebeAddress string }{zeebeAddress: "10.12.7.29:26500"},
 	}
 
 	if os.Getenv("WORKER_TYPE") != "" {

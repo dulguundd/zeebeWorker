@@ -14,7 +14,9 @@ var readyClose = make(chan struct{})
 var JobTypeString = [...]string{
 	"ams-search-costumer-information-service",
 	"ams-change-costumer-information-service",
-	"ams-create-new-costumer-service",
+	"ams-create-new-custumer-service",
+	"check-customer",
+	"get-customer-orders",
 }
 
 func Start() {
@@ -37,7 +39,13 @@ func Start() {
 		jobWorker := jobWorkerType.Handler(AmsChangeCostumerInformationHandler).Open()
 		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
 	case JobTypeString[2]:
-		jobWorker := jobWorkerType.Handler(AmsCreateNewCostumerHandler).Open()
+		jobWorker := jobWorkerType.Handler(AmsCreateNewCustomerHandler).Open()
+		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
+	case JobTypeString[3]:
+		jobWorker := jobWorkerType.Handler(CheckCustomer).Open()
+		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
+	case JobTypeString[4]:
+		jobWorker := jobWorkerType.Handler(GetCustomerOrders).Open()
 		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
 	default:
 		fmt.Printf("No matched worker type! \n")
