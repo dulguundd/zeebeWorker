@@ -10,6 +10,8 @@ import (
 	"github.com/jackc/pgx/v4"
 	"github.com/streadway/amqp"
 	"log"
+	"reflect"
+	"strconv"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -392,6 +394,7 @@ func GetProductListByColorAndSize(client worker.JobClient, job entities.Job) {
 }
 
 func GetProductsStockCount(client worker.JobClient, job entities.Job) {
+	start := time.Now()
 	jobKey := job.GetKey()
 
 	// GET VARIABLES OF TASK
@@ -404,10 +407,9 @@ func GetProductsStockCount(client worker.JobClient, job entities.Job) {
 
 	//Get variables form Zeebe
 	productIdsMap := variables["productIds"]
-	productIds := make([]int, len(productIdsMap))
-	for i := range productIdsMap {
-		productIds[i] = productIdsMap[i].(int)
-	}
+	productIds := zeebeVariableToArrayInt(productIdsMap)
+	var stockCounts []int
+	var stockCount int
 
 	//DB connection
 
@@ -417,22 +419,20 @@ func GetProductsStockCount(client worker.JobClient, job entities.Job) {
 	}
 	defer conn.Close(context.Background())
 
-	for productId := range productIds {
+	for _, productId := range productIds {
+		err = conn.QueryRow(context.Background(), "select count from webshop.stock where articleid = $1",
+			productId).Scan(&stockCount)
 
-	}
-	err = conn.QueryRow(context.Background(), "select id, gender, email from webshop.customer where firstname = $1 AND lastname = $2",
-		firstname, lastname).Scan(&customerInfo.id, &customerInfo.gender, &customerInfo.email)
-
-	if err != nil {
-		logger.Error("Error while querying data table " + err.Error())
-		failJob(client, job)
-		return
+		if err != nil {
+			logger.Error("Error while querying data table " + err.Error())
+			failJob(client, job)
+			return
+		}
+		stockCounts = append(stockCounts, stockCount)
 	}
 
 	// NEW VARIABLES TO TASK
-	variables["customerId"] = customerInfo.id
-	variables["gender"] = customerInfo.gender
-	variables["email"] = customerInfo.email
+	variables["stockCounts"] = stockCounts
 
 	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
 	if err != nil {
@@ -448,5 +448,23 @@ func GetProductsStockCount(client worker.JobClient, job entities.Job) {
 	}
 
 	//LOG HERE
-	log.Printf("Successfully completed job of id: %d\n", customerInfo.id)
+	elapsed := time.Since(start)
+	log.Printf("response latencie %s", elapsed)
+	log.Printf("Successfully completed job")
+}
+
+func zeebeVariableToArrayInt(t interface{}) []int {
+	var response []int
+	var strVar string
+	switch reflect.TypeOf(t).Kind() {
+	case reflect.Slice:
+		s := reflect.ValueOf(t)
+
+		for i := 0; i < s.Len(); i++ {
+			strVar = fmt.Sprint(s.Index(i))
+			intVar, _ := strconv.Atoi(strVar)
+			response = append(response, intVar)
+		}
+	}
+	return response
 }
