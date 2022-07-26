@@ -18,6 +18,10 @@ var JobTypeString = [...]string{
 	"check-customer",
 	"get-customer-orders",
 	"response-writer",
+	"get-color-id",
+	"get-size-id",
+	"get-product-list-by-color-and-size",
+	"get-products-stock-count",
 }
 
 func Start() {
@@ -50,6 +54,18 @@ func Start() {
 		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
 	case JobTypeString[5]:
 		jobWorker := jobWorkerType.Handler(ResponseWriter).Open()
+		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
+	case JobTypeString[6]:
+		jobWorker := jobWorkerType.Handler(GetColorId).Open()
+		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
+	case JobTypeString[7]:
+		jobWorker := jobWorkerType.Handler(GetSizeId).Open()
+		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
+	case JobTypeString[8]:
+		jobWorker := jobWorkerType.Handler(GetProductListByColorAndSize).Open()
+		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
+	case JobTypeString[9]:
+		jobWorker := jobWorkerType.Handler(GetProductsStockCount).Open()
 		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
 	default:
 		fmt.Printf("No matched worker type! \n")

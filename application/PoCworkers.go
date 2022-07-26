@@ -220,5 +220,233 @@ func rabbitmqResponse(correlationId string, replyTo string, response []byte) err
 		logger.Info("Instance Response send, correlationId: " + correlationId)
 		return nil
 	}
+}
 
+func GetColorId(client worker.JobClient, job entities.Job) {
+	jobKey := job.GetKey()
+
+	// GET VARIABLES OF TASK
+	variables, err := job.GetVariablesAsMap()
+	if err != nil {
+		// failed to handle job as we require the variables
+		failJob(client, job)
+		return
+	}
+
+	//Get variables form Zeebe
+	colorName := variables["colorName"]
+	var colorId int
+
+	//DB connection
+
+	conn, err := pgx.Connect(context.Background(), "postgres://postgres:password@172.22.2.215:5432/postgres")
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close(context.Background())
+
+	err = conn.QueryRow(context.Background(), "select id from webshop.colors where name = $1",
+		colorName).Scan(&colorId)
+
+	if err != nil {
+		logger.Error("Error while querying data table " + err.Error())
+		failJob(client, job)
+		return
+	}
+
+	// NEW VARIABLES TO TASK
+	variables["colorId"] = colorId
+
+	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
+	if err != nil {
+		// failed to set the updated variables
+		failJob(client, job)
+		return
+	}
+
+	ctx := context.Background()
+	_, err = request.Send(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	//LOG HERE
+	log.Printf("Successfully completed job of color id: %d\n", colorId)
+}
+
+func GetSizeId(client worker.JobClient, job entities.Job) {
+	jobKey := job.GetKey()
+
+	// GET VARIABLES OF TASK
+	variables, err := job.GetVariablesAsMap()
+	if err != nil {
+		// failed to handle job as we require the variables
+		failJob(client, job)
+		return
+	}
+
+	//Get variables form Zeebe
+	gender := variables["gender"]
+	size := variables["size"]
+	var sizeId int
+
+	//DB connection
+
+	conn, err := pgx.Connect(context.Background(), "postgres://postgres:password@172.22.2.215:5432/postgres")
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close(context.Background())
+
+	err = conn.QueryRow(context.Background(), "select id from webshop.sizes where size = $1 AND gender = $2",
+		size, gender).Scan(&sizeId)
+
+	if err != nil {
+		logger.Error("Error while querying data table " + err.Error())
+		failJob(client, job)
+		return
+	}
+
+	// NEW VARIABLES TO TASK
+	variables["sizeId"] = sizeId
+
+	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
+	if err != nil {
+		// failed to set the updated variables
+		failJob(client, job)
+		return
+	}
+
+	ctx := context.Background()
+	_, err = request.Send(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	//LOG HERE
+	log.Printf("Successfully completed job of size id: %d\n", sizeId)
+}
+
+func GetProductListByColorAndSize(client worker.JobClient, job entities.Job) {
+	jobKey := job.GetKey()
+
+	// GET VARIABLES OF TASK
+	variables, err := job.GetVariablesAsMap()
+	if err != nil {
+		// failed to handle job as we require the variables
+		failJob(client, job)
+		return
+	}
+
+	//Get variables form Zeebe
+	colorId := variables["colorId"]
+	sizeId := variables["sizeId"]
+	var productId int
+	var productIds = []int{}
+
+	//DB connection
+
+	conn, err := pgx.Connect(context.Background(), "postgres://postgres:password@172.22.2.215:5432/postgres")
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close(context.Background())
+
+	rows, err := conn.Query(context.Background(),
+		"select id from webshop.articles where colorid = $1 and size = $2", colorId, sizeId)
+
+	if err != nil {
+		logger.Error("Error while querying data table " + err.Error())
+		failJob(client, job)
+		return
+	}
+
+	for rows.Next() {
+		rows.Scan(&productId)
+		productIds = append(productIds, productId)
+	}
+	if err != nil {
+		logger.Error("Error while querying data table " + err.Error())
+		failJob(client, job)
+		return
+	}
+
+	// NEW VARIABLES TO TASK
+	variables["productIds"] = productIds
+
+	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
+	if err != nil {
+		// failed to set the updated variables
+		failJob(client, job)
+		return
+	}
+
+	ctx := context.Background()
+	_, err = request.Send(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	//LOG HERE
+	log.Println("Successfully completed job")
+}
+
+func GetProductsStockCount(client worker.JobClient, job entities.Job) {
+	jobKey := job.GetKey()
+
+	// GET VARIABLES OF TASK
+	variables, err := job.GetVariablesAsMap()
+	if err != nil {
+		// failed to handle job as we require the variables
+		failJob(client, job)
+		return
+	}
+
+	//Get variables form Zeebe
+	productIdsMap := variables["productIds"]
+	productIds := make([]int, len(productIdsMap))
+	for i := range productIdsMap {
+		productIds[i] = productIdsMap[i].(int)
+	}
+
+	//DB connection
+
+	conn, err := pgx.Connect(context.Background(), "postgres://postgres:password@172.22.2.215:5432/postgres")
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close(context.Background())
+
+	for productId := range productIds {
+
+	}
+	err = conn.QueryRow(context.Background(), "select id, gender, email from webshop.customer where firstname = $1 AND lastname = $2",
+		firstname, lastname).Scan(&customerInfo.id, &customerInfo.gender, &customerInfo.email)
+
+	if err != nil {
+		logger.Error("Error while querying data table " + err.Error())
+		failJob(client, job)
+		return
+	}
+
+	// NEW VARIABLES TO TASK
+	variables["customerId"] = customerInfo.id
+	variables["gender"] = customerInfo.gender
+	variables["email"] = customerInfo.email
+
+	request, err := client.NewCompleteJobCommand().JobKey(jobKey).VariablesFromMap(variables)
+	if err != nil {
+		// failed to set the updated variables
+		failJob(client, job)
+		return
+	}
+
+	ctx := context.Background()
+	_, err = request.Send(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	//LOG HERE
+	log.Printf("Successfully completed job of id: %d\n", customerInfo.id)
 }
