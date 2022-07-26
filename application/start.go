@@ -17,6 +17,7 @@ var JobTypeString = [...]string{
 	"ams-create-new-custumer-service",
 	"check-customer",
 	"get-customer-orders",
+	"response-writer",
 }
 
 func Start() {
@@ -46,6 +47,9 @@ func Start() {
 		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
 	case JobTypeString[4]:
 		jobWorker := jobWorkerType.Handler(GetCustomerOrders).Open()
+		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
+	case JobTypeString[5]:
+		jobWorker := jobWorkerType.Handler(ResponseWriter).Open()
 		closeJobWorker(jobWorker, environment.serviceConfig.workerType)
 	default:
 		fmt.Printf("No matched worker type! \n")
